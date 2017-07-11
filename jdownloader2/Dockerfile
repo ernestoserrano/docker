@@ -1,17 +1,27 @@
 FROM centos:latest
 
-#Installs Dummy X Org Driver
+# Installs necessary packages
 RUN yum update -y \
-&& yum install -y openssh-server tigervnc-server xorg-x11-drv-dummy supervisor \
-&& yum clean all
+&& yum install -y expect epel-release xorg-x11-drv-dummy python-setuptools java-1.8.0-openjdk \
+&& yum install -y x11vnc \
+&& yum clean all \
+&& easy_install supervisor
 
-#Retrives X Dummy Config File
-ADD http://xpra.org/xorg.conf /etc/X11/xorg.conf
-ADD
+# Copy Sample X Dummy Config File from http://xpra.org/xorg.conf
+ADD xorg.conf /etc/X11/xorg.conf
 
-VOLUME ["/tmp/.X11-unix"]
+# Copy VNC Password Script
+ADD vncpasswd.sh /tmp/vncpasswd.sh
 
-EXPOSE 5900
-EXPOSE 22
+ADD setup.sh /tmp/setup.sh
 
-CMD ["/usr/bin/Xorg", "-noreset", "+extension", "GLX", "+extension", "RANDR", "+extension", "RENDER", "-logfile", "./10.log", "-config", "./xorg.conf", ":1"]
+ADD supervisord.conf /etc/supervisor/supervisord.conf
+
+ENV VNC_USER="vncuser"
+ENV VNC_PASS="vncpass"
+ENV VNC_DISPLAY="1"
+
+RUN export VNC_PASS VNC_USER VNC_DISPLAY \
+&&  chmod +x /tmp/setup.sh
+
+ENTRYPOINT ["/tmp/setup.sh"]
